@@ -497,7 +497,7 @@ app.post("/api/crosschain/transfer", async (req, res) => {
 
         // Step 2: Send RLUSD from XRPL to Bitget
         console.log("💸 Step 2: Sending RLUSD from XRPL to Bitget...");
-        const sendResult = await xrplService.sendRLUSD(senderSeed, bitgetDepositAddress, rlusd_amount, bitgetDestinationTag);
+        const sendResult = await xrplService.sendRLUSD(senderSeed, bitgetDepositAddress, rlusdAmount, bitgetDestinationTag);
 
         if (!sendResult.success) {
             throw new Error(`Failed to send RLUSD: ${sendResult.message}`);
@@ -505,7 +505,7 @@ app.post("/api/crosschain/transfer", async (req, res) => {
 
         // Step 2.5: Wait for RLUSD deposit confirmation at Bitget
         console.log("⏳ Step 2.5: Waiting for RLUSD deposit confirmation at Bitget...");
-        const depositConfirmation = await bitgetService.waitForDepositConfirmation("RLUSD", rlusd_amount, sendResult.hash);
+        const depositConfirmation = await bitgetService.waitForDepositConfirmation("RLUSD", rlusdAmount, sendResult.hash);
 
         if (!depositConfirmation.success) {
             throw new Error(`RLUSD deposit confirmation failed: ${depositConfirmation.error}`);
@@ -513,7 +513,7 @@ app.post("/api/crosschain/transfer", async (req, res) => {
 
         // Step 3: Convert RLUSD to USDC at Bitget
         console.log("💱 Step 3: Converting RLUSD to USDC at Bitget...");
-        const convertResponse = await bitgetService.convertCurrency("RLUSD", "USDC", rlusd_amount);
+        const convertResponse = await bitgetService.convertCurrency("RLUSD", "USDC", rlusdAmount);
 
         if (convertResponse.code !== "00000" || !convertResponse.data) {
             throw new Error(`Failed to convert currency: ${convertResponse.msg || "Unknown error"}`);
@@ -589,9 +589,9 @@ app.post("/api/xrpl/account-info", async (req, res) => {
 // Cross-chain transfer route
 app.post("/api/crosschain/start-crosschain", async (req, res) => {
     try {
-        const { rlusd_amount, destination_network, xrpl_seed, destination_address } = req.body;
+        const { rlusdAmount, destination_network, xrpl_seed, destination_address } = req.body;
 
-        if (!rlusd_amount || !destination_network || !xrpl_seed || !destination_address) {
+        if (!rlusdAmount || !destination_network || !xrpl_seed || !destination_address) {
             return res.status(400).json({ error: "Missing required parameters." });
         }
 
@@ -612,7 +612,7 @@ app.post("/api/crosschain/start-crosschain", async (req, res) => {
 
         // Step 2: Send RLUSD from XRPL to Bitget
         console.log("💸 Step 2: Sending RLUSD from XRPL to Bitget...");
-        const sendResult = await xrplService.sendRLUSD(senderSeed, bitgetDepositAddress, rlusd_amount, bitgetDestinationTag);
+        const sendResult = await xrplService.sendRLUSD(senderSeed, bitgetDepositAddress, rlusdAmount, bitgetDestinationTag);
 
         if (!sendResult.success) {
             throw new Error(`Failed to send RLUSD: ${sendResult.message}`);
@@ -620,7 +620,7 @@ app.post("/api/crosschain/start-crosschain", async (req, res) => {
 
         // Step 2.5: Wait for RLUSD deposit confirmation at Bitget
         console.log("⏳ Step 2.5: Waiting for RLUSD deposit confirmation at Bitget...");
-        const depositConfirmation = await bitgetService.waitForDepositConfirmation("RLUSD", rlusd_amount, sendResult.hash);
+        const depositConfirmation = await bitgetService.waitForDepositConfirmation("RLUSD", rlusdAmount, sendResult.hash);
 
         if (!depositConfirmation.success) {
             throw new Error(`RLUSD deposit confirmation failed: ${depositConfirmation.error}`);
@@ -628,7 +628,7 @@ app.post("/api/crosschain/start-crosschain", async (req, res) => {
 
         // Step 3: Convert RLUSD to USDC at Bitget
         console.log("💱 Step 3: Converting RLUSD to USDC at Bitget...");
-        const convertResponse = await bitgetService.convertCurrency("RLUSD", "USDC", rlusd_amount);
+        const convertResponse = await bitgetService.convertCurrency("RLUSD", "USDC", rlusdAmount);
 
         if (convertResponse.code !== "00000" || !convertResponse.data) {
             throw new Error(`Failed to convert currency: ${convertResponse.msg || "Unknown error"}`);
