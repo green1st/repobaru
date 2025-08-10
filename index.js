@@ -184,7 +184,7 @@ class BitgetService {
             // Validate fromCoinSize
             const amount = parseFloat(fromCoinSize);
             if (isNaN(amount) || amount <= 0) {
-                throw new Error("Invalid fromCoinSize: Must be a positive number for Bitget API.");
+                return { success: false, message: "Invalid fromCoinSize: Must be a positive number for Bitget API." };
             }
 
             const response = await this.client.getConvertQuotedPrice({
@@ -201,9 +201,9 @@ class BitgetService {
             // Check if error has a response data for more specific Bitget error messages
             if (error.response && error.response.data) {
                 console.error("❌ Bitget API Error Response:", JSON.stringify(error.response.data, null, 2));
-                throw new Error(`Failed to get quoted price from Bitget: ${error.response.data.msg || error.message}`);
+                return { success: false, message: `Failed to get quoted price from Bitget: ${error.response.data.msg || error.message}` };
             }
-            throw new Error(`Failed to get quoted price: ${error.message}`);
+            return { success: false, message: `Failed to get quoted price: ${error.message}` };
         }
     }
 
@@ -212,6 +212,11 @@ class BitgetService {
             // Step 1: Get quoted price
             console.log(`💱 Getting quoted price for ${amount} ${fromCoin} to ${toCoin}...`);
             const quotedPriceResponse = await this.getQuotedPrice(fromCoin, toCoin, amount);
+
+            // Check if getQuotedPrice returned an error
+            if (quotedPriceResponse.success === false) {
+                throw new Error(quotedPriceResponse.message);
+            }
 
             if (quotedPriceResponse.code !== "00000" || !quotedPriceResponse.data) {
                 throw new Error(`Failed to get quoted price: ${quotedPriceResponse.msg || "Unknown error"}`);
@@ -223,7 +228,6 @@ class BitgetService {
             console.log(`✅ Quoted price obtained: cnvtPrice=${cnvtPrice}, toCoinSize=${toCoinSize}, traceId=${traceId}`);
 
             console.log(`💱 Converting ${amount} ${fromCoin} to ${toCoin} using bitget-api library...`);
-            console.log(`Parameters for convert: fromCoin=${fromCoin}, toCoin=${toCoin}, fromCoinSize=${amount}, cnvtPrice=${cnvtPrice}, toCoinSize=${toCoinSize}, traceId=${traceId}`); // Log parameters
 
             if (this.api_key === "YOUR_BITGET_API_KEY") {
                 console.log("⚠️  Using placeholder API credentials. Replace with real Bitget API credentials in .env file.");
@@ -252,11 +256,12 @@ class BitgetService {
 
         } catch (error) {
             console.error("❌ Error converting currency:", error.message);
-            console.error("❌ Full error object:", error);
-            if (error.response && error.response.data) {
-                console.error("❌ Bitget API Error Response:", JSON.stringify(error.response.data, null, 2));
-                throw new Error(`Failed to convert currency from Bitget: ${error.response.data.msg || error.message}`);
-            }
+            console.error("❌ Full error object:", error); // Added for debugging
+            console.error("❌ Error details:", {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data
+            });
             throw new Error(`Failed to convert currency: ${error.message}`);
         }
     }
