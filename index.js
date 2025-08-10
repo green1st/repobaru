@@ -49,7 +49,8 @@ class BitgetService {
             return response;
 
         } catch (error) {
-            console.error("❌ Error getting deposit records:", error);
+            console.error("❌ Error getting deposit records:", error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             throw new Error(`Failed to get deposit records: ${error.message}`);
         }
     }
@@ -120,7 +121,7 @@ class BitgetService {
 
             } catch (error) {
                 console.error("❌ Error checking deposit status:", error.message);
-                console.error("❌ Full error:", error);
+                console.error("❌ Full error object:", error); // Added for debugging
                 // Continue polling despite errors
                 console.log(`⏳ Retrying in ${pollInterval / 1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -156,6 +157,7 @@ class BitgetService {
 
         } catch (error) {
             console.error("❌ Error getting deposit address:", error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             throw new Error(`Failed to get deposit address: ${error.message}`);
         }
     }
@@ -163,6 +165,7 @@ class BitgetService {
     async getQuotedPrice(fromCoin, toCoin, fromCoinSize) {
         try {
             console.log(`📋 Getting quoted price for ${fromCoinSize} ${fromCoin} to ${toCoin} using bitget-api library...`);
+            console.log(`Parameters for getConvertQuotedPrice: fromCoin=${fromCoin}, toCoin=${toCoin}, fromCoinSize=${fromCoinSize}`); // Log parameters
 
             if (this.api_key === "YOUR_BITGET_API_KEY") {
                 console.log("⚠️  Using placeholder API credentials. Replace with real Bitget API credentials in .env file.");
@@ -172,21 +175,34 @@ class BitgetService {
                     code: "00000",
                     data: {
                         cnvtPrice: simulatedCnvtPrice,
-                        toCoinSize: (parseFloat(fromCoinSize) * 0.99).toFixed(8)
+                        toCoinSize: (parseFloat(fromCoinSize) * 0.99).toFixed(8),
+                        traceId: `simulated_trace_${Date.now()}` // Add simulated traceId
                     }
                 };
+            }
+
+            // Validate fromCoinSize
+            const amount = parseFloat(fromCoinSize);
+            if (isNaN(amount) || amount <= 0) {
+                throw new Error("Invalid fromCoinSize: Must be a positive number for Bitget API.");
             }
 
             const response = await this.client.getConvertQuotedPrice({
                 fromCoin: fromCoin,
                 toCoin: toCoin,
-                fromCoinSize: fromCoinSize.toString()
+                fromCoinSize: amount.toString()
             });
             console.log(`✅ Quoted price API response:`, JSON.stringify(response, null, 2));
             return response;
 
         } catch (error) {
             console.error("❌ Error getting quoted price:", error.message);
+            console.error("❌ Full error object:", error);
+            // Check if error has a response data for more specific Bitget error messages
+            if (error.response && error.response.data) {
+                console.error("❌ Bitget API Error Response:", JSON.stringify(error.response.data, null, 2));
+                throw new Error(`Failed to get quoted price from Bitget: ${error.response.data.msg || error.message}`);
+            }
             throw new Error(`Failed to get quoted price: ${error.message}`);
         }
     }
@@ -204,9 +220,10 @@ class BitgetService {
             const cnvtPrice = quotedPriceResponse.data.cnvtPrice;
             const toCoinSize = quotedPriceResponse.data.toCoinSize;
             const traceId = quotedPriceResponse.data.traceId;
-            console.log(`✅ Quoted price obtained: ${cnvtPrice}, toCoinSize: ${toCoinSize}, traceId: ${traceId}`);
+            console.log(`✅ Quoted price obtained: cnvtPrice=${cnvtPrice}, toCoinSize=${toCoinSize}, traceId=${traceId}`);
 
             console.log(`💱 Converting ${amount} ${fromCoin} to ${toCoin} using bitget-api library...`);
+            console.log(`Parameters for convert: fromCoin=${fromCoin}, toCoin=${toCoin}, fromCoinSize=${amount}, cnvtPrice=${cnvtPrice}, toCoinSize=${toCoinSize}, traceId=${traceId}`); // Log parameters
 
             if (this.api_key === "YOUR_BITGET_API_KEY") {
                 console.log("⚠️  Using placeholder API credentials. Replace with real Bitget API credentials in .env file.");
@@ -235,11 +252,11 @@ class BitgetService {
 
         } catch (error) {
             console.error("❌ Error converting currency:", error.message);
-            console.error("❌ Error details:", {
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data
-            });
+            console.error("❌ Full error object:", error);
+            if (error.response && error.response.data) {
+                console.error("❌ Bitget API Error Response:", JSON.stringify(error.response.data, null, 2));
+                throw new Error(`Failed to convert currency from Bitget: ${error.response.data.msg || error.message}`);
+            }
             throw new Error(`Failed to convert currency: ${error.message}`);
         }
     }
@@ -273,6 +290,7 @@ class BitgetService {
 
         } catch (error) {
             console.error("❌ Error withdrawing:", error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             console.error("❌ Error details:", {
                 status: error.response?.status,
                 statusText: error.response?.statusText,
@@ -322,6 +340,7 @@ class XRPLService {
             return response.result.account_data;
         } catch (error) {
             console.error(`❌ Error getting account info for ${address}:`, error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             throw error;
         } finally {
             await this.disconnect();
@@ -349,6 +368,7 @@ class XRPLService {
             return response.result.lines;
         } catch (error) {
             console.error(`❌ Error getting trust lines for ${address}:`, error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             throw error;
         } finally {
             await this.disconnect();
@@ -369,6 +389,7 @@ class XRPLService {
             }
         } catch (error) {
             console.error("❌ Error getting RLUSD balance:", error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             return 0;
         }
     }
@@ -403,10 +424,12 @@ class XRPLService {
                 return { success: true, hash: result.result.hash };
             } else {
                 console.error(`❌ XRPL transaction failed: ${result.result.meta.TransactionResult}`);
+                console.error("❌ Full result object:", result); // Added for debugging
                 return { success: false, message: result.result.meta.TransactionResult };
             }
         } catch (error) {
             console.error("❌ Error sending RLUSD:", error.message);
+            console.error("❌ Full error object:", error); // Added for debugging
             throw error;
         } finally {
             await this.disconnect();
@@ -631,6 +654,3 @@ app.listen(PORT, () => {
     console.log(`🔗 XRPL Network: ${process.env.XRPL_NETWORK}`);
     console.log(`🏦 Bitget API configured: ${bitgetService.api_key !== "YOUR_BITGET_API_KEY" ? "Yes" : "No"}`);
 });
-
-
-
